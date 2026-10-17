@@ -1,1 +1,2 @@
-rootProject.name = "aiagg-shell"\ninclude(":app")\n
+rootProject.name = "aiagg-shell"
+include(":app")
