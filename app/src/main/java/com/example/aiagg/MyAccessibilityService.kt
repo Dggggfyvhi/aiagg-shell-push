@@ -192,11 +192,11 @@ class MyAccessibilityService : AccessibilityService() {
         val clicked = if (btn != null) {
             runCatching { btn.performAction(AccessibilityNodeInfo.ACTION_CLICK) }.isSuccess
         } else {
-            // 回车兜底
-            Log.d(TAG, "未找到发送按钮，尝试 IME_ENTER")
+            // 回车兜底：对可编辑输入框节点执行点击（无全局 IME_ENTER action）
+            Log.d(TAG, "未找到发送按钮，尝试点击输入框")
             runCatching {
-                root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-                    ?.performAction(AccessibilityNodeInfo.ACTION_IME_ENTER)
+                findInputNode(root)
+                    ?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             }.isSuccess
         }
 
@@ -285,8 +285,18 @@ class MyAccessibilityService : AccessibilityService() {
         if (!byId.isNullOrEmpty()) return byId.first()
 
         // 最后递归找第一个可编辑的 EditText
-        val all = root.findAccessibilityNodeInfosByClass("android.widget.EditText")
-        return all?.firstOrNull { it.isEditable }
+        return findFirstEditableEditText(root)
+    }
+
+    /** 递归查找第一个可编辑的 EditText 节点 */
+    private fun findFirstEditableEditText(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        if (node.className.toString().endsWith("EditText") && node.isEditable) return node
+        for (i in 0 until node.childCount) {
+            val child = node.getChildAt(i) ?: continue
+            val r = findFirstEditableEditText(child)
+            if (r != null) return r
+        }
+        return null
     }
 
     /** 定位发送按钮：按文本找 Button / 可点击 ImageView / 带 contentDescription 的控件 */

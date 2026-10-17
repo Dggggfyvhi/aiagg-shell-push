@@ -1,48 +1,40 @@
 name: Build Android APK
+
 on:
   push:
-    branches: [ master ]
-  workflow_dispatch: {}
+    branches: [ main, master ]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set up JDK
+
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
-      - name: Prepare Android SDK
-        run: |
-          set -x
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -la "$ANDROID_HOME" 2>/dev/null || echo "SDK dir missing, will download"
-          if [ ! -d "$ANDROID_HOME/cmdline-tools" ] && [ ! -d "$ANDROID_HOME/tools" ]; then
-            echo "Downloading command-line tools..."
-            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076764_latest.zip -O /tmp/cmdline-tools.zip
-            unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools-tmp"
-            mv "$ANDROID_HOME/cmdline-tools-tmp/cmdline-tools" "$ANDROID_HOME/cmdline-tools"
-            rm -rf "$ANDROID_HOME/cmdline-tools-tmp"
-            chmod +x "$ANDROID_HOME/cmdline-tools/bin/sdkmanager"
-          fi
-          CMDLINE="$ANDROID_HOME/cmdline-tools/bin/sdkmanager"
-          [ -x "$CMDLINE" ] || CMDLINE="$ANDROID_HOME/tools/bin/sdkmanager"
-          yes | "$CMDLINE" --licenses >/dev/null 2>&1 || true
-          "$CMDLINE" "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -5 || true
-      - name: Fix gradlew permissions
+          distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2'
+          distribution: 'bin'
+          cache-read-only: false
+
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-      - name: Build debug APK
-        run: |
-          set -x
-          ./gradlew assembleDebug --no-daemon --stacktrace --refresh-dependencies
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
       - name: Upload APK artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
