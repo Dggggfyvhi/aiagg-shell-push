@@ -10,7 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
-import android.view.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityEvent
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import java.util.concurrent.ConcurrentHashMap
@@ -43,7 +43,7 @@ class MyAccessibilityService : AccessibilityService() {
         private data class Session(
             var active: Boolean = false,
             var phase: Phase = Phase.IDLE,
-            val textToSend: String = "",
+            var textToSend: String = "",
             var targetPkg: String = "",
             var lastChangeAt: Long = 0L,
             var sendClicked: Boolean = false
@@ -363,8 +363,8 @@ class MyAccessibilityService : AccessibilityService() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    override fun onTerminate() {
+    override fun onDestroy() {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(sendReceiver)
-        super.onTerminate()
+        super.onDestroy()
     }
 }
