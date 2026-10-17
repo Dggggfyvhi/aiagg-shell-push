@@ -36,13 +36,6 @@ jobs:
           "$CMDLINE" "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -5 || true
       - name: Fix gradlew permissions
         run: chmod +x gradlew
-      - name: Clean broken Gradle distribution cache
-        run: |
-          set -x
-          # Remove corrupted/empty dist dirs that cause BuildLayoutException
-          rm -rf /home/runner/.gradle/dists/*
-          rm -rf /home/runner/.gradle/wrapper/dists/*
-          echo "cleaned gradle dist caches"
       - name: Build debug APK
         run: |
           set -x
