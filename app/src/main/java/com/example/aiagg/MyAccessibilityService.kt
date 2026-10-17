@@ -3,6 +3,7 @@ package com.example.aiagg
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.util.Log
 
 class MyAccessibilityService : AccessibilityService() {
@@ -25,9 +26,7 @@ class MyAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) {
-            return
-        }
+        if (event == null) return
         val et = event.eventType
         val pkg = event.packageName
         when (et) {
@@ -54,5 +53,10 @@ class MyAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         Log.d(tag, "onInterrupt")
+    }
+
+    fun findInputNode(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindow ?: return null
+        return root
     }
 }
