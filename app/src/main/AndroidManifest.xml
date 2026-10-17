@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.aiagg">
-
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
-
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <queries>
         <package android:name="com.larus.wormhole" />
         <package android:name="com.aliyun.tongyi" />
@@ -12,14 +10,12 @@
         <package android:name="com.zhipu.qlib" />
         <package android:name="com.openai.chatgpt" />
     </queries>
-
     <application
         android:allowBackup="true"
         android:icon="@android:drawable/sym_def_app_icon"
         android:label="@string/app_label"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         tools:targetApi="31">
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -29,11 +25,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <service
             android:name=".MyAccessibilityService"
             android:exported="false"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:label="@string/app_label">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
@@ -41,7 +37,5 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-
     </application>
-
 </manifest>
