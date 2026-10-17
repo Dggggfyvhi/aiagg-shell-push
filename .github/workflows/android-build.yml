@@ -2,26 +2,33 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2'
+          distribution: 'bin'
+          cache-read-only: false
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
@@ -31,64 +38,3 @@ jobs:
         with:
           name: app-debug.apk
           path: app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Create or update GitHub Release
-        id: create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-          TAG="build-${{ github.run_number }}"
-          RELEASE_JSON='{"tag_name":"'"$TAG"'"}'
-          RESPONSE="$(curl -sS -X POST \
-            -H 'Authorization: token ${GITHUB_TOKEN}' \
-            -H 'Content-Type: application/json' \
-            -d "$RELEASE_JSON" \
-            'https://api.github.com/repos/${{ github.repository }}/releases')"
-          echo "response:"
-          echo "$RESPONSE"
-          RELEASE_ID="$(echo "$RESPONSE" | python3 - <<'PY'
-import json, sys
-try:
-    d = json.loads(sys.stdin.read())
-except Exception:
-    print("")
-    raise
-if "id" in d:
-    print(d["id"])
-elif "url" in d:
-    print(d["url"].rstrip("/").split("/")[-1])
-else:
-    print("")
-PY
-          )"
-          if [ -z "$RELEASE_ID" ]; then
-            echo "failed to create release"
-            exit 1
-          fi
-          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Upload APK as release asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-          ASSET_NAME="app-debug.apk"
-          ASSET_PATH="${{ github.workspace }}/app/build/outputs/apk/debug/$ASSET_NAME"
-          if [ ! -f "$ASSET_PATH" ]; then
-            echo "asset not found: $ASSET_PATH"
-            exit 1
-          fi
-          echo "uploading $ASSET_NAME"
-          curl -sS -L \
-            -X POST \
-            -H "Authorization: token ${GITHUB_TOKEN}" \
-            -H "Content-Type: application/octet-stream" \
-            --data-binary @"$ASSET_PATH" \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.release_id }}/assets?name=$ASSET_NAME"
-          echo "asset uploaded"
-
-      - name: Print permanent download hint
-        run: |
-          echo "Permanent download available under:"
-          echo "https://github.com/${{ github.repository }}/releases"
