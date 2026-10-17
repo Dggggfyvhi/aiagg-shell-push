@@ -262,10 +262,10 @@ class MyAccessibilityService : AccessibilityService() {
         collectTextNodes(root, all)
         val best = all
             .map { it.text.toString() }
-            .filter {
-                it.length in 20..MAX_REPLY_CHARS &&
-                    !it.equals(userText, ignoreCase = true) &&
-                    sendKeyTexts.none { k -> it == k }
+            .filter { text ->
+                text.length in 20..MAX_REPLY_CHARS &&
+                    !text.equals(userText, ignoreCase = true) &&
+                    sendKeyTexts.none { key -> text == key }
             }
             .maxByOrNull { it.length }
         return best
@@ -281,8 +281,6 @@ class MyAccessibilityService : AccessibilityService() {
             }
             if (et != null) return et
         }
-        val byId = root.findAccessibilityNodeInfosByViewId("android.widget.EditText")
-        if (!byId.isNullOrEmpty()) return byId.first()
 
         // 最后递归找第一个可编辑的 EditText
         return findFirstEditableEditText(root)
@@ -312,15 +310,21 @@ class MyAccessibilityService : AccessibilityService() {
             if (btn != null) return btn
         }
 
-        // 按常见 ID 兜底
-        for (id in listOf(
-            "com.larus.wormhole:id/btn_send",
-            "com.aliyun.tongyi:id/btn_send",
-            "com.openai.chatgpt:id/btn_send",
-            "android:id/button1"
-        )) {
-            val byId = runCatching { root.findAccessibilityNodeInfosByViewId(id) }.getOrNull()
-            if (!byId.isNullOrEmpty()) return byId.first()
+        // 递归找第一个可点击按钮兜底
+        return findFirstClickableButton(root)
+    }
+
+    /** 递归查找第一个可点击的按钮节点 */
+    private fun findFirstClickableButton(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        val cls = node.className.toString()
+        if (node.isClickable &&
+            (cls.endsWith("Button") || cls.endsWith("ImageView"))) {
+            return node
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChildAt(i) ?: continue
+            val found = findFirstClickableButton(child)
+            if (found != null) return found
         }
         return null
     }
