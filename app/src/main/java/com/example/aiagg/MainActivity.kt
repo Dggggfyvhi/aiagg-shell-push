@@ -1,38 +1,31 @@
 package com.example.aiagg
 
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import android.app.Activity
+import android.app.AlertDialog
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import kotlin.concurrent.thread
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
     companion object {
-        // LocalBroadcast 频道
         const val ACTION_SEND_TO_AI = "com.example.aiagg.ACTION_SEND_TO_AI"
         const val ACTION_AI_RESULT = "com.example.aiagg.ACTION_AI_RESULT"
         const val EXTRA_TEXT = "extra_text"
         const val EXTRA_RESULT = "extra_result"
         const val EXTRA_ERROR = "extra_error"
 
-        // 主流 AI App：包名 -> 显示名
         private val APPS = linkedMapOf(
             "com.larus.wormhole" to "豆包",
             "com.aliyun.tongyi" to "通义千问",
@@ -50,7 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var resultText: TextView
     private lateinit var statusText: TextView
 
-    private val installedApps = LinkedHashMap<String, String>() // pkg -> 显示名
+    private val installedApps = LinkedHashMap<String, String>()
 
     private val resultReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -75,7 +68,6 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
 
         refreshInstalledApps()
-
         btnSend.setOnClickListener { onSend() }
     }
 
@@ -95,7 +87,9 @@ class MainActivity : AppCompatActivity() {
         val names = installedApps.values.toList()
         spinnerApp.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, names)
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-        spinnerApp.setSelection(0)
+        if (names.isNotEmpty()) {
+            spinnerApp.setSelection(0)
+        }
     }
 
     private fun onSend() {
@@ -119,13 +113,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // 1) 通知无障碍服务去自动填入 & 发送
         val sendIntent = Intent(ACTION_SEND_TO_AI).putExtra(EXTRA_TEXT, text)
         LocalBroadcastManager.getInstance(this).sendBroadcast(sendIntent)
 
-        // 2) 拉起目标 App 到前台
         launchApp(pkg)
-
         resultText.setText("正在等待 AI 回复…")
     }
 
@@ -168,17 +159,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 每次回到前台都刷新一次无障碍状态
         refreshAccessibilityStatus()
         refreshInstalledApps()
     }
 
     private fun refreshAccessibilityStatus() {
-        statusText.text =
-            if (isAccessibilityServiceEnabled()) "无障碍服务：已开启"
-            else "无障碍服务：未开启"
+        val enabled = isAccessibilityServiceEnabled()
+        statusText.text = if (enabled) "无障碍服务：已开启" else "无障碍服务：未开启"
         statusText.setTextColor(
-            if (isAccessibilityServiceEnabled()) 0xFF00897B.toInt() else 0xFFE60000.toInt()
+            if (enabled) 0xFF00897B.toInt() else 0xFFE60000.toInt()
         )
     }
 
