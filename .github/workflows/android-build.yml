@@ -7,7 +7,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      # ubuntu-latest runner 已预装 Android SDK，直接用
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,17 +18,27 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Install Android command-line tools
+      - name: Prepare Android SDK (pre-installed)
         run: |
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076764_latest.zip -O /tmp/cmdline-tools.zip
-          unzip -q /tmp/cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
-          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          set -x
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME" 2>/dev/null || echo "SDK dir missing, will download"
+          if [ ! -d "$ANDROID_HOME/cmdline-tools" ] && [ ! -d "$ANDROID_HOME/tools" ]; then
+            echo "Downloading command-line tools..."
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076764_latest.zip -O /tmp/cmdline-tools.zip
+            unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools-tmp"
+            mv "$ANDROID_HOME/cmdline-tools-tmp/cmdline-tools" "$ANDROID_HOME/cmdline-tools"
+            rm -rf "$ANDROID_HOME/cmdline-tools-tmp"
+            chmod +x "$ANDROID_HOME/cmdline-tools/bin/sdkmanager"
+          fi
+          CMDLINE="$ANDROID_HOME/cmdline-tools/bin/sdkmanager"
+          [ -x "$CMDLINE" ] || CMDLINE="$ANDROID_HOME/tools/bin/sdkmanager"
+          yes | "$CMDLINE" --licenses >/dev/null 2>&1 || true
+          "$CMDLINE" "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -5 || true
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
       - name: Upload APK artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
