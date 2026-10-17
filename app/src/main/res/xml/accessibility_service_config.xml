@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewScrolled|typeViewClicked|typeTextChanged|typeAnnouncement|typeWindowOpened"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRequestTouchExploration|flagReportViewIds|flagRequestFilterKeyEvents"
+    android:canRetrieveWindowContent="true"
+    android:canRequestTouchExplorationMode="true"
+    android:canRequestFilterKeyEvents="true"
+    android:notificationTimeout="100"
+    android:description="@string/accessibility_service_description"
+    android:packageNames="com.larus.wormhole,com.aliyun.tongyi,com.deepseek.chat,com.zhipu.qlib,com.openai.chatgpt"
+    android:settingsActivity="com.example.aiagg.MainActivity" />

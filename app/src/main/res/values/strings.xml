@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_label">AI聚合外壳</string>
+    <string name="accessibility_service_description">用于自动操作豆包、通义千问、DeepSeek、智谱清言、ChatGPT 等 AI 应用，自动填入问题、点击发送并抓取回复。</string>
+</resources>
