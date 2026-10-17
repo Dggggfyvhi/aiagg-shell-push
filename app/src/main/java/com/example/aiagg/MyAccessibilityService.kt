@@ -290,7 +290,8 @@ class MyAccessibilityService : AccessibilityService() {
     private fun findFirstEditableEditText(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         if (node.className.toString().endsWith("EditText") && node.isEditable) return node
         for (i in 0 until node.childCount) {
-            val child = node.getChildAt(i) ?: continue
+            val child = node.getChildAt(i)
+            if (child == null) continue
             val r = findFirstEditableEditText(child)
             if (r != null) return r
         }
@@ -322,7 +323,8 @@ class MyAccessibilityService : AccessibilityService() {
             return node
         }
         for (i in 0 until node.childCount) {
-            val child = node.getChildAt(i) ?: continue
+            val child = node.getChildAt(i)
+            if (child == null) continue
             val found = findFirstClickableButton(child)
             if (found != null) return found
         }
@@ -337,7 +339,8 @@ class MyAccessibilityService : AccessibilityService() {
         runCatching {
             if (node.text.isNotBlank()) out.add(node)
             for (i in 0 until node.childCount) {
-                node.getChildAt(i)?.let { collectTextNodes(it, out) }
+                val child = node.getChildAt(i)
+                if (child != null) collectTextNodes(child, out)
             }
         }
     }
