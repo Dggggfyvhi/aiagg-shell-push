@@ -7,7 +7,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # ubuntu-latest runner 已预装 Android SDK，直接用
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
@@ -18,7 +17,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Prepare Android SDK (pre-installed)
+      - name: Prepare Android SDK
         run: |
           set -x
           echo "ANDROID_HOME=$ANDROID_HOME"
@@ -35,6 +34,8 @@ jobs:
           [ -x "$CMDLINE" ] || CMDLINE="$ANDROID_HOME/tools/bin/sdkmanager"
           yes | "$CMDLINE" --licenses >/dev/null 2>&1 || true
           "$CMDLINE" "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -5 || true
+      - name: Fix gradlew permissions
+        run: chmod +x gradlew
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
       - name: Upload APK artifact
