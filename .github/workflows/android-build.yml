@@ -39,15 +39,31 @@ jobs:
         run: |
           set -e
           TAG="build-${{ github.run_number }}"
+          RELEASE_JSON='{"tag_name":"'"$TAG"'"}'
           RESPONSE="$(curl -sS -X POST \
             -H 'Authorization: token ${GITHUB_TOKEN}' \
             -H 'Content-Type: application/json' \
-            -d '{\"tag_name\":\"'"$TAG"'\"}" \
+            -d "$RELEASE_JSON" \
             'https://api.github.com/repos/${{ github.repository }}/releases')"
-          RELEASE_ID="$(echo "$RESPONSE" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("id",""))')"
-          if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "None" ]; then
-            echo "release id not found, response:"
-            echo "$RESPONSE"
+          echo "response:"
+          echo "$RESPONSE"
+          RELEASE_ID="$(echo "$RESPONSE" | python3 - <<'PY'
+import json, sys
+try:
+    d = json.loads(sys.stdin.read())
+except Exception:
+    print("")
+    raise
+if "id" in d:
+    print(d["id"])
+elif "url" in d:
+    print(d["url"].rstrip("/").split("/")[-1])
+else:
+    print("")
+PY
+          )"
+          if [ -z "$RELEASE_ID" ]; then
+            echo "failed to create release"
             exit 1
           fi
           echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
@@ -58,14 +74,18 @@ jobs:
         run: |
           set -e
           ASSET_NAME="app-debug.apk"
+          ASSET_PATH="${{ github.workspace }}/app/build/outputs/apk/debug/$ASSET_NAME"
+          if [ ! -f "$ASSET_PATH" ]; then
+            echo "asset not found: $ASSET_PATH"
+            exit 1
+          fi
           echo "uploading $ASSET_NAME"
           curl -sS -L \
             -X POST \
             -H "Authorization: token ${GITHUB_TOKEN}" \
             -H "Content-Type: application/octet-stream" \
-            -H "Content-Length: $(stat -c%s ${{ github.workspace }}/app/build/outputs/apk/debug/$ASSET_NAME)" \
-            --data-binary @${{ github.workspace }}/app/build/outputs/apk/debug/$ASSET_NAME \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$ASSET_NAME"
+            --data-binary @"$ASSET_PATH" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.release_id }}/assets?name=$ASSET_NAME"
           echo "asset uploaded"
 
       - name: Print permanent download hint
